@@ -286,7 +286,341 @@
         totalArb += s.games.filter(g => g.isArb).length;
 
         html += `<div class="sport-section">
+          <div class="sport-header" id<!DOCTYPE html>
+<html>
+<head>
+  <title>Arb Scanner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #0f0f0f; color: white; padding: 20px; }
+    h1 { color: #00ff88; font-size: 28px; margin-bottom: 4px; }
+    .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+    .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    button { background: #00ff88; color: black; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; border-radius: 6px; font-weight: bold; }
+    button:hover { background: #00cc6a; }
+    .summary { font-size: 16px; color: #aaa; margin-bottom: 20px; }
+    .summary span { color: #00ff88; font-weight: bold; }
+    #countdown { color: #444; font-size: 13px; margin-left: 8px; }
+    .sport-section { margin-bottom: 24px; border: 1px solid #222; border-radius: 10px; overflow: hidden; }
+    .sport-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; cursor: pointer; user-select: none; }
+    .sport-header:hover { background: #1a1a1a; }
+    .sport-header h2 { font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .sport-header .count { font-size: 13px; color: #555; }
+    .sport-header .arrow { color: #555; transition: transform 0.2s; }
+    .sport-header.collapsed .arrow { transform: rotate(-90deg); }
+    .sport-body { display: block; }
+    .sport-body.hidden { display: none; }
+    .odds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .odds-table th { background: #1a1a1a; color: #555; padding: 10px 12px; text-align: center; border-bottom: 1px solid #222; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .odds-table th.game-col { text-align: left; }
+    .odds-table td { padding: 10px 12px; border-bottom: 1px solid #111; text-align: center; vertical-align: middle; }
+    .odds-table td.game-col { text-align: left; }
+    .odds-table tr:last-child td { border-bottom: none; }
+    .odds-table tr:hover td { background: #161616; }
+    .team-names { display: flex; flex-direction: column; gap: 4px; }
+    .team-name { font-size: 13px; color: #ccc; }
+    .team-name.away { color: #888; }
+    .odds-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+    .odds-val { font-weight: bold; font-size: 13px; }
+    .odds-val.positive { color: #00ff88; }
+    .odds-val.negative { color: #ff6644; }
+    .odds-val.pinnacle { color: #ff9900; }
+    .odds-val.empty { color: #333; }
+    .best-odds { background: #0a2a0a; border-radius: 4px; padding: 1px 4px; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; }
+    .badge-ev { background: #2a2a00; color: #ffcc00; }
+    .badge-arb { background: #002a00; color: #00ff88; }
+    .game-time { font-size: 11px; color: #444; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Arb Scanner</h1>
+  <p class="subtitle">Pregame odds comparison + Pinnacle sharp line — MLB, NBA, NHL</p>
+
+  <div class="controls">
+    <button onclick="loadOdds()">🔍 Scan Now</button>
+    <span id="countdown"></span>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div id="output"></div>
+
+  <script>
+    let countdown = 60;
+    let timer;
+
+    const BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers', 'Caesars'];
+    const PINNACLE = 'Pinnacle';
+
+    function toDecimal(american) {
+      if (american > 0) return (american / 100) + 1;
+      return (100 / Math.abs(american)) + 1;
+    }
+
+    function fmtOdds(price) {
+      if (price === null || price === undefined) return null;
+      return price > 0 ? '+' + price : '' + price;
+    }
+
+    function oddsClass(price, isPinnacle) {
+      if (isPinnacle) return 'odds-val pinnacle';
+      if (price > 0) return 'odds-val positive';
+      return 'odds-val negative';
+    }
+
+    function removeVig(pHome, pAway) {
+      const iH = 1 / toDecimal(pHome);
+      const iA = 1 / toDecimal(pAway);
+      const t = iH + iA;
+      return { fairHome: iH / t, fairAway: iA / t };
+    }
+
+    function calcEV(fairProb, price) {
+      return (fairProb * (toDecimal(price) - 1) - (1 - fairProb)) * 100;
+    }
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function getSportLabel(key) {
+      if (key.includes('baseball')) return { emoji: '⚾', name: 'MLB', key: 'mlb' };
+      if (key.includes('basketball')) return { emoji: '🏀', name: 'NBA', key: 'nba' };
+      if (key.includes('hockey')) return { emoji: '🏒', name: 'NHL', key: 'nhl' };
+      if (key.includes('football')) return { emoji: '🏈', name: 'NFL', key: 'nfl' };
+      return { emoji: '🏟', name: 'Other', key: 'other' };
+    }
+
+    function processGames(games) {
+      const sports = {};
+      for (const game of games) {
+        const label = getSportLabel(game.sport_key);
+        if (!sports[label.key]) sports[label.key] = { ...label, games: [] };
+
+        const bookOdds = {};
+        let pinnHome = null, pinnAway = null;
+
+        for (const bm of game.bookmakers) {
+          const outcomes = bm.markets[0].outcomes;
+          const homeO = outcomes.find(o => o.name === game.home_team);
+          const awayO = outcomes.find(o => o.name === game.away_team);
+
+          if (bm.key === 'pinnacle') {
+            pinnHome = homeO?.price ?? null;
+            pinnAway = awayO?.price ?? null;
+          } else if (BOOKS.includes(bm.title)) {
+            bookOdds[bm.title] = {
+              home: homeO?.price ?? null,
+              away: awayO?.price ?? null
+            };
+          }
+        }
+
+        let bestHome = -99999, bestAway = -99999;
+        for (const b of BOOKS) {
+          if (bookOdds[b]?.home > bestHome) bestHome = bookOdds[b].home;
+          if (bookOdds[b]?.away > bestAway) bestAway = bookOdds[b].away;
+        }
+
+        let isArb = false, arbRoi = null;
+        if (bestHome && bestAway) {
+          const total = 1/toDecimal(bestHome) + 1/toDecimal(bestAway);
+          if (total < 1) { isArb = true; arbRoi = ((1/total)-1)*100; }
+        }
+
+        let evHome = null, evAway = null, fairHome = null, fairAway = null;
+        if (pinnHome && pinnAway) {
+          const fair = removeVig(pinnHome, pinnAway);
+          fairHome = fair.fairHome;
+          fairAway = fair.fairAway;
+          if (bestHome) evHome = calcEV(fairHome, bestHome);
+          if (bestAway) evAway = calcEV(fairAway, bestAway);
+        }
+
+        sports[label.key].games.push({
+          id: game.id,
+          game: `${game.away_team} @ ${game.home_team}`,
+          homeTeam: game.home_team,
+          awayTeam: game.away_team,
+          time: game.commence_time,
+          bookOdds, pinnHome, pinnAway,
+          bestHome, bestAway,
+          isArb, arbRoi,
+          evHome, evAway,
+          fairHome: fairHome ? (fairHome*100).toFixed(1) : null,
+          fairAway: fairAway ? (fairAway*100).toFixed(1) : null
+        });
+      }
+      return sports;
+    }
+
+    function processHRProps(hrProps) {
+      const HR_BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers'];
+      const playerMap = {};
+
+      for (const game of hrProps) {
+        for (const bm of game.bookmakers) {
+          if (!HR_BOOKS.includes(bm.title)) continue;
+          const market = bm.markets.find(m => m.key === 'batter_home_runs');
+          if (!market) continue;
+          for (const outcome of market.outcomes) {
+            const player = outcome.description || outcome.name;
+            if (!player) continue;
+            if (!playerMap[player]) playerMap[player] = {};
+            playerMap[player][bm.title] = outcome.price;
+          }
+        }
+      }
+      return playerMap;
+    }
+
+    function renderTable(games) {
+      const cols = [...BOOKS, PINNACLE];
+      let html = `<table class="odds-table">
+        <thead><tr>
+          <th class="game-col">Game</th>
+          ${cols.map(b => `<th>${b}</th>`).join('')}
+          <th>EV / ARB</th>
+        </tr></thead><tbody>`;
+
+      for (const g of games) {
+        const cell = (book, side) => {
+          const isPinn = book === PINNACLE;
+          const price = isPinn
+            ? (side === 'home' ? g.pinnHome : g.pinnAway)
+            : g.bookOdds[book]?.[side];
+          if (!price) return '<span class="odds-val empty">—</span>';
+          const isBest = !isPinn && ((side === 'home' && price === g.bestHome) || (side === 'away' && price === g.bestAway));
+          const cls = oddsClass(price, isPinn) + (isBest ? ' best-odds' : '');
+          return `<span class="${cls}">${fmtOdds(price)}</span>`;
+        };
+
+        const evBadge = () => {
+          let badges = '';
+          if (g.evHome > 2) badges += `<span class="badge badge-ev">+${g.evHome.toFixed(1)}% ${g.homeTeam.split(' ').pop()}</span> `;
+          if (g.evAway > 2) badges += `<span class="badge badge-ev">+${g.evAway.toFixed(1)}% ${g.awayTeam.split(' ').pop()}</span> `;
+          if (g.isArb) badges += `<span class="badge badge-arb">ARB +${g.arbRoi.toFixed(2)}%</span>`;
+          return badges || '<span style="color:#333">—</span>';
+        };
+
+        html += `<tr>
+          <td class="game-col">
+            <div class="team-names">
+              <div class="team-name away">${g.awayTeam}</div>
+              <div class="team-name">${g.homeTeam}</div>
+            </div>
+            <div class="game-time">${fmtTime(g.time)}</div>
+          </td>
+          ${cols.map(b => `<td><div class="odds-cell">
+            <div>${cell(b, 'away')}</div>
+            <div>${cell(b, 'home')}</div>
+          </div></td>`).join('')}
+          <td>${evBadge()}</td>
+        </tr>`;
+      }
+
+      return html + '</tbody></table>';
+    }
+
+    function renderHRProps(playerMap) {
+      const HR_BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers'];
+      const entries = Object.entries(playerMap);
+      if (entries.length === 0) return '<p style="color:#555;padding:20px">No HR prop data available right now.</p>';
+
+      let html = `<table class="odds-table">
+        <thead><tr>
+          <th class="game-col">Player</th>
+          ${HR_BOOKS.map(b => `<th>${b}</th>`).join('')}
+        </tr></thead><tbody>`;
+
+      for (const [player, books] of entries) {
+        const prices = HR_BOOKS.map(b => books[b] ?? null);
+        const best = Math.max(...prices.filter(p => p !== null));
+        html += `<tr><td class="game-col" style="color:#ccc">${player}</td>`;
+        for (const b of HR_BOOKS) {
+          const p = books[b];
+          if (!p) { html += `<td><span class="odds-val empty">—</span></td>`; continue; }
+          const isBest = p === best;
+          html += `<td><span class="odds-val positive${isBest ? ' best-odds' : ''}">${p > 0 ? '+' : ''}${p}</span></td>`;
+        }
+        html += `</tr>`;
+      }
+
+      return html + '</tbody></table>';
+    }
+
+    function toggleSection(key) {
+      const header = document.getElementById('header-' + key);
+      const body = document.getElementById('body-' + key);
+      header.classList.toggle('collapsed');
+      body.classList.toggle('hidden');
+    }
+
+    function startCountdown() {
+      clearInterval(timer);
+      countdown = 60;
+      timer = setInterval(() => {
+        countdown--;
+        document.getElementById('countdown').textContent = `Auto-refresh in ${countdown}s`;
+        if (countdown <= 0) loadOdds();
+      }, 1000);
+    }
+
+    async function loadOdds() {
+      document.getElementById('summary').innerHTML = '<span style="color:#555">Scanning...</span>';
+      document.getElementById('output').innerHTML = '';
+      startCountdown();
+
+      const res = await fetch('/api/odds');
+      const { games, hrProps } = await res.json();
+      const sports = processGames(games);
+
+      let totalGames = 0, totalEV = 0, totalArb = 0;
+      let html = '';
+
+      const sportOrder = ['mlb', 'nba', 'nhl', 'nfl'];
+      for (const key of sportOrder) {
+        const s = sports[key];
+        if (!s) continue;
+        totalGames += s.games.length;
+        totalEV += s.games.filter(g => g.evHome > 2 || g.evAway > 2).length;
+        totalArb += s.games.filter(g => g.isArb).length;
+
+        html += `<div class="sport-section">
           <div class="sport-header" id="header-${key}" onclick="toggleSection('${key}')">
+            <h2>${s.emoji} ${s.name} <span class="count">${s.games.length} games</span></h2>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="sport-body" id="body-${key}">
+            ${renderTable(s.games)}
+          </div>
+        </div>`;
+      }
+
+      // HR Props section
+      const playerMap = processHRProps(hrProps || []);
+      html += `<div class="sport-section">
+        <div class="sport-header" id="header-hr" onclick="toggleSection('hr')">
+          <h2>💣 HR Props <span class="count">MLB Home Run Odds</span></h2>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="sport-body hidden" id="body-hr">
+          ${renderHRProps(playerMap)}
+        </div>
+      </div>`;
+
+      document.getElementById('summary').innerHTML =
+        `<span>${totalArb} arb${totalArb !== 1 ? 's' : ''}</span> &nbsp;|&nbsp; <span style="color:#ffcc00">${totalEV} +EV plays</span> &nbsp;|&nbsp; ${totalGames} total games`;
+
+      document.getElementById('output').innerHTML = html;
+    }
+
+    loadOdds();
+  </script>
+</body>
+</html>="header-${key}" onclick="toggleSection('${key}')">
             <h2>${s.emoji} ${s.name} <span class="count">${s.games.length} games</span></h2>
             <span class="arrow">▼</span>
           </div>
