@@ -15,8 +15,7 @@ async function fetchSharpAPI(sport) {
 
 async function fetchOddsAPI(sport) {
   const res = await fetch(
-    `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us,eu&markets=h2h&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers,caesars,pinnacle`
-  );
+&bookmakers=fanduel,draftkings,betmgm,betrivers,caesars,fanatics,pinnacle  );
   return res.json();
 }
 

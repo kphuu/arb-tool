@@ -58,8 +58,7 @@
   <script>
     let countdown = 60;
     let timer;
-    const BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers', 'Caesars'];
-    const PINNACLE = 'Pinnacle';
+const BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers'];    const PINNACLE = 'Pinnacle';
 
     function toDecimal(a) { return a > 0 ? (a/100)+1 : (100/Math.abs(a))+1; }
     function fmtOdds(p) { return p > 0 ? '+'+p : ''+p; }
