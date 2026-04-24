@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Arb Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #0f0f0f; color: white; padding: 20px; }
+    h1 { color: #00ff88; font-size: 28px; margin-bottom: 4px; }
+    .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+    .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    button { background: #00ff88; color: black; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; border-radius: 6px; font-weight: bold; }
+    button:hover { background: #00cc6a; }
+    .summary { font-size: 16px; color: #aaa; margin-bottom: 20px; }
+    .summary span { color: #00ff88; font-weight: bold; }
+    .timer { color: #555; font-size: 13px; }
+    .sport-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
+    .tag-mlb { background: #1a3a1a; color: #00ff88; }
+    .tag-nba { background: #1a1a3a; color: #4488ff; }
+    .tag-nhl { background: #1a2a3a; color: #00aaff; }
+    .tag-mls { background: #2a1a1a; color: #ff6644; }
+    .arb-card { background: #1a1a1a; border: 2px solid #00ff88; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .no-arb { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 16px; margin-bottom: 10px; color: #555; }
+    .game-title { font-size: 17px; font-weight: bold; margin-bottom: 10px; color: white; }
+    .roi-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+    .roi { font-size: 26px; color: #00ff88; font-weight: bold; }
+    .roi-bar-bg { flex: 1; background: #222; border-radius: 4px; height: 8px; }
+    .roi-bar { background: #00ff88; height: 8px; border-radius: 4px; }
+    .bet-row { margin: 8px 0; color: #ccc; font-size: 15px; }
+    .book { color: #00aaff; font-weight: bold; }
+    .odds { color: #ffaa00; font-weight: bold; }
+    .stake { color: #00ff88; font-weight: bold; }
+    .no-arb-odds { font-size: 13px; }
+    .section-title { color: #555; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
+    #countdown { color: #444; font-size: 13px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Arb Scanner</h1>
+  <p class="subtitle">Pregame arbitrage across MLB, NBA, NHL, MLS</p>
+
+  <div class="controls">
+    <button onclick="loadOdds()">🔍 Scan Now</button>
+    <span id="countdown"></span>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div id="output"></div>
+
+  <script>
+    let countdown = 60;
+    let timer;
+
+    function toDecimal(american) {
+      if (american > 0) return (american / 100) + 1;
+      return (100 / Math.abs(american)) + 1;
+    }
+
+    function getSportTag(key) {
+      if (!key) return '';
+      if (key.includes('baseball')) return '<span class="sport-tag tag-mlb">⚾ MLB</span>';
+      if (key.includes('basketball')) return '<span class="sport-tag tag-nba">🏀 NBA</span>';
+      if (key.includes('hockey')) return '<span class="sport-tag tag-nhl">🏒 NHL</span>';
+      if (key.includes('soccer')) return '<span class="sport-tag tag-mls">⚽ MLS</span>';
+      return '';
+    }
+
+    function findArbs(games) {
+      const results = [];
+const ALLOWED_BOOKS = ['DraftKings', 'FanDuel', 'BetMGM', 'BetRivers', 'Caesars', 'Fanatics'];
+      for (const game of games) {
+        let bestHome = { price: -99999, book: '' };
+        let bestAway = { price: -99999, book: '' };
+
+        for (const bookmaker of game.bookmakers.filter(b => ALLOWED_BOOKS.includes(b.title))) {
+          const outcomes = bookmaker.markets[0].outcomes;
+          for (const outcome of outcomes) {
+            if (outcome.name === game.home_team && outcome.price > bestHome.price)
+              bestHome = { price: outcome.price, book: bookmaker.title };
+            if (outcome.name === game.away_team && outcome.price > bestAway.price)
+              bestAway = { price: outcome.price, book: bookmaker.title };
+          }
+        }
+
+        const impliedHome = 1 / toDecimal(bestHome.price);
+        const impliedAway = 1 / toDecimal(bestAway.price);
+        const total = impliedHome + impliedAway;
+        const roi = ((1 / total) - 1) * 100;
+        const stakeHome = (impliedHome / total) * 100;
+        const stakeAway = (impliedAway / total) * 100;
+
+        results.push({
+          game: `${game.away_team} @ ${game.home_team}`,
+          sport: game.sport_key,
+          isArb: total < 1 && bestHome.book !== bestAway.book,
+          roi: roi,
+          roiDisplay: roi.toFixed(2),
+          home: { team: game.home_team, ...bestHome, stake: stakeHome.toFixed(2) },
+          away: { team: game.away_team, ...bestAway, stake: stakeAway.toFixed(2) }
+        });
+      }
+      return results.sort((a, b) => b.roi - a.roi);
+    }
+
+    function startCountdown() {
+      clearInterval(timer);
+      countdown = 60;
+      timer = setInterval(() => {
+        countdown--;
+        document.getElementById('countdown').textContent = `Auto-refresh in ${countdown}s`;
+        if (countdown <= 0) loadOdds();
+      }, 1000);
+    }
+
+    async function loadOdds() {
+      document.getElementById('summary').innerHTML = '<span style="color:#555">Scanning all sports...</span>';
+      document.getElementById('output').innerHTML = '';
+      startCountdown();
+
+      const res = await fetch('/api/odds');
+      const data = await res.json();
+      const results = findArbs(data);
+      const arbs = results.filter(r => r.isArb);
+      const nonArbs = results.filter(r => !r.isArb);
+
+      document.getElementById('summary').innerHTML =
+        `Found <span>${arbs.length} arb${arbs.length !== 1 ? 's' : ''}</span> out of ${results.length} games`;
+
+      let html = '';
+
+      if (arbs.length > 0) {
+        html += '<div class="section-title">✅ Arbitrage Opportunities</div>';
+        for (const r of arbs) {
+          const barWidth = Math.min(r.roi * 20, 100);
+          html += `
+            <div class="arb-card">
+              ${getSportTag(r.sport)}
+              <div class="game-title">${r.game}</div>
+              <div class="roi-row">
+                <div class="roi">+${r.roiDisplay}% ROI</div>
+                <div class="roi-bar-bg"><div class="roi-bar" style="width:${barWidth}%"></div></div>
+              </div>
+              <div class="bet-row">Bet <span class="stake">$${r.away.stake}</span> on <span class="book">${r.away.book}</span> — ${r.away.team} at <span class="odds">${r.away.price > 0 ? '+' : ''}${r.away.price}</span></div>
+              <div class="bet-row">Bet <span class="stake">$${r.home.stake}</span> on <span class="book">${r.home.book}</span> — ${r.home.team} at <span class="odds">${r.home.price > 0 ? '+' : ''}${r.home.price}</span></div>
+            </div>`;
+        }
+      }
+
+      html += '<div class="section-title">📋 All Other Games</div>';
+      for (const r of nonArbs) {
+        html += `
+          <div class="no-arb">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>${getSportTag(r.sport)} <span style="color:#777">${r.game}</span></span>
+              <span class="no-arb-odds">
+                ${r.away.team} <span class="odds">${r.away.price > 0 ? '+' : ''}${r.away.price}</span> @ <span class="book">${r.away.book}</span>
+                &nbsp;|&nbsp;
+                ${r.home.team} <span class="odds">${r.home.price > 0 ? '+' : ''}${r.home.price}</span> @ <span class="book">${r.home.book}</span>
+              </span>
+            </div>
+          </div>`;
+      }
+
+      document.getElementById('output').innerHTML = html;
+    }
+
+    loadOdds();
+  </script>
+</body>
+</html>
