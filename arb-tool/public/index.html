@@ -12,37 +12,63 @@
     button:hover { background: #00cc6a; }
     .summary { font-size: 16px; color: #aaa; margin-bottom: 20px; }
     .summary span { color: #00ff88; font-weight: bold; }
-    .sport-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
-    .tag-mlb { background: #1a3a1a; color: #00ff88; }
-    .tag-nba { background: #1a1a3a; color: #4488ff; }
-    .tag-nhl { background: #1a2a3a; color: #00aaff; }
-    .tag-nfl { background: #2a1a2a; color: #ff44ff; }
-    .arb-card { background: #1a1a1a; border: 2px solid #00ff88; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
-    .ev-card { background: #1a1a00; border: 2px solid #ffcc00; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
-    .no-arb { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 16px; margin-bottom: 10px; }
-    .game-title { font-size: 17px; font-weight: bold; margin-bottom: 10px; color: white; }
-    .roi-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
-    .roi { font-size: 26px; color: #00ff88; font-weight: bold; }
-    .ev-label { font-size: 20px; color: #ffcc00; font-weight: bold; }
-    .roi-bar-bg { flex: 1; background: #222; border-radius: 4px; height: 8px; }
-    .roi-bar { background: #00ff88; height: 8px; border-radius: 4px; }
-    .ev-bar { background: #ffcc00; height: 8px; border-radius: 4px; }
-    .bet-row { margin: 8px 0; color: #ccc; font-size: 15px; }
-    .book { color: #00aaff; font-weight: bold; }
-    .odds { color: #ffaa00; font-weight: bold; }
-    .stake { color: #00ff88; font-weight: bold; }
-    .pinnacle-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; color: #888; font-size: 13px; }
-    .sharp { color: #ff6644; font-weight: bold; }
-    .ev-positive { color: #ffcc00; font-weight: bold; }
-    .section-title { color: #555; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
     #countdown { color: #444; font-size: 13px; margin-left: 8px; }
-    .no-arb-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .no-arb-odds { font-size: 13px; color: #555; }
+
+    /* Sport sections */
+    .sport-section { margin-bottom: 24px; border: 1px solid #222; border-radius: 10px; overflow: hidden; }
+    .sport-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; cursor: pointer; user-select: none; }
+    .sport-header:hover { background: #1a1a1a; }
+    .sport-header h2 { font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .sport-header .count { font-size: 13px; color: #555; }
+    .sport-header .arrow { color: #555; transition: transform 0.2s; }
+    .sport-header.collapsed .arrow { transform: rotate(-90deg); }
+    .sport-body { display: block; }
+    .sport-body.hidden { display: none; }
+
+    /* Table */
+    .odds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .odds-table th { background: #1a1a1a; color: #555; padding: 10px 12px; text-align: center; border-bottom: 1px solid #222; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .odds-table th.game-col { text-align: left; }
+    .odds-table td { padding: 10px 12px; border-bottom: 1px solid #111; text-align: center; vertical-align: middle; }
+    .odds-table td.game-col { text-align: left; }
+    .odds-table tr:last-child td { border-bottom: none; }
+    .odds-table tr:hover td { background: #161616; }
+
+    .team-names { display: flex; flex-direction: column; gap: 4px; }
+    .team-name { font-size: 13px; color: #ccc; }
+    .team-name.away { color: #888; }
+
+    .odds-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+    .odds-val { font-weight: bold; font-size: 13px; }
+    .odds-val.positive { color: #00ff88; }
+    .odds-val.negative { color: #ff6644; }
+    .odds-val.pinnacle { color: #ff9900; }
+    .odds-val.empty { color: #333; }
+    .best-odds { background: #0a2a0a; border-radius: 4px; padding: 1px 4px; }
+
+    /* EV and arb badges */
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; }
+    .badge-ev { background: #2a2a00; color: #ffcc00; }
+    .badge-arb { background: #002a00; color: #00ff88; }
+
+    .game-time { font-size: 11px; color: #444; margin-top: 2px; }
+
+    /* HR props section */
+    .props-section { margin-top: 8px; }
+    .props-header { background: #0a0a1a; padding: 10px 20px; font-size: 13px; color: #4488ff; font-weight: bold; border-top: 1px solid #222; cursor: pointer; }
+    .props-body { padding: 0 20px 12px; }
+    .prop-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #111; font-size: 13px; }
+    .prop-row:last-child { border-bottom: none; }
+    .prop-player { color: #ccc; min-width: 160px; }
+    .prop-books { display: flex; gap: 12px; flex-wrap: wrap; }
+    .prop-book { color: #555; font-size: 12px; }
+    .prop-book span { color: #ffaa00; font-weight: bold; margin-left: 4px; }
+    .prop-ev { color: #ffcc00; font-size: 12px; font-weight: bold; margin-left: 8px; }
   </style>
 </head>
 <body>
   <h1>⚡ Arb Scanner</h1>
-  <p class="subtitle">Pregame arbitrage + Pinnacle sharp line comparison — MLB, NBA, NHL, NFL</p>
+  <p class="subtitle">Pregame odds comparison + Pinnacle sharp line — MLB, NBA, NHL</p>
 
   <div class="controls">
     <button onclick="loadOdds()">🔍 Scan Now</button>
@@ -56,112 +82,170 @@
     let countdown = 60;
     let timer;
 
+    const BOOKS = ['FanDuel', 'DraftKings', 'BetMGM', 'BetRivers', 'Caesars'];
+    const PINNACLE = 'Pinnacle';
+
     function toDecimal(american) {
       if (american > 0) return (american / 100) + 1;
       return (100 / Math.abs(american)) + 1;
     }
 
-    function toAmerican(decimal) {
-      if (decimal >= 2) return '+' + Math.round((decimal - 1) * 100);
-      return Math.round(-100 / (decimal - 1)).toString();
+    function fmtOdds(price) {
+      if (price === null || price === undefined) return null;
+      return price > 0 ? '+' + price : '' + price;
     }
 
-    function getSportTag(key) {
-      if (!key) return '';
-      if (key.includes('baseball')) return '<span class="sport-tag tag-mlb">⚾ MLB</span>';
-      if (key.includes('basketball')) return '<span class="sport-tag tag-nba">🏀 NBA</span>';
-      if (key.includes('hockey')) return '<span class="sport-tag tag-nhl">🏒 NHL</span>';
-      if (key.includes('football')) return '<span class="sport-tag tag-nfl">🏈 NFL</span>';
-      return '';
+    function oddsClass(price, isPinnacle) {
+      if (isPinnacle) return 'odds-val pinnacle';
+      if (price > 0) return 'odds-val positive';
+      return 'odds-val negative';
     }
 
-    function removeVig(pinnHome, pinnAway) {
-      const impHome = 1 / toDecimal(pinnHome);
-      const impAway = 1 / toDecimal(pinnAway);
-      const total = impHome + impAway;
-      return {
-        fairHome: impHome / total,
-        fairAway: impAway / total
-      };
+    function removeVig(pHome, pAway) {
+      const iH = 1 / toDecimal(pHome);
+      const iA = 1 / toDecimal(pAway);
+      const t = iH + iA;
+      return { fairHome: iH / t, fairAway: iA / t };
     }
 
-    function findArbs(games) {
-      const ALLOWED_BOOKS = ['DraftKings', 'FanDuel', 'BetMGM', 'BetRivers', 'Caesars', 'Fanatics'];
-      const results = [];
+    function calcEV(fairProb, price) {
+      return (fairProb * (toDecimal(price) - 1) - (1 - fairProb)) * 100;
+    }
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function getSportLabel(key) {
+      if (key.includes('baseball')) return { emoji: '⚾', name: 'MLB', key: 'mlb' };
+      if (key.includes('basketball')) return { emoji: '🏀', name: 'NBA', key: 'nba' };
+      if (key.includes('hockey')) return { emoji: '🏒', name: 'NHL', key: 'nhl' };
+      if (key.includes('football')) return { emoji: '🏈', name: 'NFL', key: 'nfl' };
+      return { emoji: '🏟', name: 'Other', key: 'other' };
+    }
+
+    function processGames(games) {
+      const sports = {};
 
       for (const game of games) {
-        let bestHome = { price: -99999, book: '' };
-        let bestAway = { price: -99999, book: '' };
-        let pinnHome = null;
-        let pinnAway = null;
+        const label = getSportLabel(game.sport_key);
+        if (!sports[label.key]) sports[label.key] = { ...label, games: [] };
 
-        for (const bookmaker of game.bookmakers) {
-          const outcomes = bookmaker.markets[0].outcomes;
+        const bookOdds = {};
+        let pinnHome = null, pinnAway = null;
 
-          // Grab Pinnacle separately as sharp reference
-          if (bookmaker.key === 'pinnacle') {
-            for (const o of outcomes) {
-              if (o.name === game.home_team) pinnHome = o.price;
-              if (o.name === game.away_team) pinnAway = o.price;
-            }
-            continue;
-          }
+        for (const bm of game.bookmakers) {
+          const outcomes = bm.markets[0].outcomes;
+          const homeO = outcomes.find(o => o.name === game.home_team);
+          const awayO = outcomes.find(o => o.name === game.away_team);
 
-          if (!ALLOWED_BOOKS.includes(bookmaker.title)) continue;
-
-          for (const outcome of outcomes) {
-            if (outcome.name === game.home_team && outcome.price > bestHome.price)
-              bestHome = { price: outcome.price, book: bookmaker.title };
-            if (outcome.name === game.away_team && outcome.price > bestAway.price)
-              bestAway = { price: outcome.price, book: bookmaker.title };
+          if (bm.key === 'pinnacle') {
+            pinnHome = homeO?.price ?? null;
+            pinnAway = awayO?.price ?? null;
+          } else if (BOOKS.includes(bm.title)) {
+            bookOdds[bm.title] = {
+              home: homeO?.price ?? null,
+              away: awayO?.price ?? null
+            };
           }
         }
 
-        if (!bestHome.book || !bestAway.book) continue;
+        // Find best odds across books
+        let bestHome = -99999, bestAway = -99999;
+        for (const b of BOOKS) {
+          if (bookOdds[b]?.home > bestHome) bestHome = bookOdds[b].home;
+          if (bookOdds[b]?.away > bestAway) bestAway = bookOdds[b].away;
+        }
 
-        const impliedHome = 1 / toDecimal(bestHome.price);
-        const impliedAway = 1 / toDecimal(bestAway.price);
-        const total = impliedHome + impliedAway;
-        const roi = ((1 / total) - 1) * 100;
-        const stakeHome = (impliedHome / total) * 100;
-        const stakeAway = (impliedAway / total) * 100;
+        // Arb check
+        let isArb = false, arbRoi = null;
+        if (bestHome && bestAway) {
+          const total = 1/toDecimal(bestHome) + 1/toDecimal(bestAway);
+          if (total < 1) { isArb = true; arbRoi = ((1/total)-1)*100; }
+        }
 
-        // +EV vs Pinnacle
-        let evHome = null, evAway = null;
-        let fairHome = null, fairAway = null;
+        // EV vs Pinnacle
+        let evHome = null, evAway = null, fairHome = null, fairAway = null;
         if (pinnHome && pinnAway) {
           const fair = removeVig(pinnHome, pinnAway);
           fairHome = fair.fairHome;
           fairAway = fair.fairAway;
-          evHome = (fairHome * (toDecimal(bestHome.price) - 1) - (1 - fairHome)) * 100;
-          evAway = (fairAway * (toDecimal(bestAway.price) - 1) - (1 - fairAway)) * 100;
+          if (bestHome) evHome = calcEV(fairHome, bestHome);
+          if (bestAway) evAway = calcEV(fairAway, bestAway);
         }
 
-        const isArb = total < 1 && bestHome.book !== bestAway.book && roi < 5;
-        const isEvHome = evHome !== null && evHome > 2;
-        const isEvAway = evAway !== null && evAway > 2;
-
-        results.push({
+        sports[label.key].games.push({
+          id: game.id,
           game: `${game.away_team} @ ${game.home_team}`,
-          sport: game.sport_key,
-          isArb, isEvHome, isEvAway,
-          roi: roi,
-          roiDisplay: roi.toFixed(2),
-          evHome: evHome ? evHome.toFixed(1) : null,
-          evAway: evAway ? evAway.toFixed(1) : null,
+          homeTeam: game.home_team,
+          awayTeam: game.away_team,
+          time: game.commence_time,
+          bookOdds,
           pinnHome, pinnAway,
-          fairHome: fairHome ? (fairHome * 100).toFixed(1) : null,
-          fairAway: fairAway ? (fairAway * 100).toFixed(1) : null,
-          home: { team: game.home_team, ...bestHome, stake: stakeHome.toFixed(2) },
-          away: { team: game.away_team, ...bestAway, stake: stakeAway.toFixed(2) }
+          bestHome, bestAway,
+          isArb, arbRoi,
+          evHome, evAway,
+          fairHome: fairHome ? (fairHome*100).toFixed(1) : null,
+          fairAway: fairAway ? (fairAway*100).toFixed(1) : null
         });
       }
 
-      return results.sort((a, b) => {
-        if (a.isArb && !b.isArb) return -1;
-        if (!a.isArb && b.isArb) return 1;
-        return b.roi - a.roi;
-      });
+      return sports;
+    }
+
+    function renderTable(games) {
+      const cols = [...BOOKS, PINNACLE];
+      let html = `<table class="odds-table">
+        <thead><tr>
+          <th class="game-col">Game</th>
+          ${cols.map(b => `<th>${b}</th>`).join('')}
+          <th>EV</th>
+        </tr></thead><tbody>`;
+
+      for (const g of games) {
+        const isPinn = (b) => b === PINNACLE;
+
+        const cell = (book, side) => {
+          const price = isPinn(book)
+            ? (side === 'home' ? g.pinnHome : g.pinnAway)
+            : g.bookOdds[book]?.[side];
+
+          if (!price) return '<span class="odds-val empty">—</span>';
+
+          const isBest = (side === 'home' && price === g.bestHome) ||
+                         (side === 'away' && price === g.bestAway);
+          const cls = oddsClass(price, isPinn(book)) + (isBest && !isPinn(book) ? ' best-odds' : '');
+          return `<span class="${cls}">${fmtOdds(price)}</span>`;
+        };
+
+        const evBadge = () => {
+          let badges = '';
+          if (g.evHome > 2) badges += `<span class="badge badge-ev">+${g.evHome.toFixed(1)}% EV ${g.homeTeam.split(' ').pop()}</span> `;
+          if (g.evAway > 2) badges += `<span class="badge badge-ev">+${g.evAway.toFixed(1)}% EV ${g.awayTeam.split(' ').pop()}</span> `;
+          if (g.isArb) badges += `<span class="badge badge-arb">ARB +${g.arbRoi.toFixed(2)}%</span>`;
+          return badges || '<span style="color:#333">—</span>';
+        };
+
+        html += `<tr>
+          <td class="game-col">
+            <div class="team-names">
+              <div class="team-name away">${g.awayTeam}</div>
+              <div class="team-name">${g.homeTeam}</div>
+            </div>
+            <div class="game-time">${fmtTime(g.time)}</div>
+          </td>
+          ${cols.map(b => `<td><div class="odds-cell">
+            <div>${cell(b, 'away')}</div>
+            <div>${cell(b, 'home')}</div>
+          </div></td>`).join('')}
+          <td>${evBadge()}</td>
+        </tr>`;
+      }
+
+      html += '</tbody></table>';
+      return html;
     }
 
     function startCountdown() {
@@ -174,73 +258,46 @@
       }, 1000);
     }
 
+    function toggleSection(key) {
+      const header = document.getElementById('header-' + key);
+      const body = document.getElementById('body-' + key);
+      header.classList.toggle('collapsed');
+      body.classList.toggle('hidden');
+    }
+
     async function loadOdds() {
-      document.getElementById('summary').innerHTML = '<span style="color:#555">Scanning all sports...</span>';
+      document.getElementById('summary').innerHTML = '<span style="color:#555">Scanning...</span>';
       document.getElementById('output').innerHTML = '';
       startCountdown();
 
       const res = await fetch('/api/odds');
       const data = await res.json();
-      const results = findArbs(data);
-      const arbs = results.filter(r => r.isArb);
-      const evPlays = results.filter(r => !r.isArb && (r.isEvHome || r.isEvAway));
-      const rest = results.filter(r => !r.isArb && !r.isEvHome && !r.isEvAway);
+      const sports = processGames(data);
 
-      document.getElementById('summary').innerHTML =
-        `<span>${arbs.length} arb${arbs.length !== 1 ? 's' : ''}</span> &nbsp;|&nbsp; <span style="color:#ffcc00">${evPlays.length} +EV plays</span> &nbsp;|&nbsp; ${results.length} total games`;
-
+      let totalGames = 0, totalEV = 0, totalArb = 0;
       let html = '';
 
-      if (arbs.length > 0) {
-        html += '<div class="section-title">✅ Arbitrage Opportunities</div>';
-        for (const r of arbs) {
-          html += `
-            <div class="arb-card">
-              ${getSportTag(r.sport)}
-              <div class="game-title">${r.game}</div>
-              <div class="roi-row">
-                <div class="roi">+${r.roiDisplay}% ROI</div>
-                <div class="roi-bar-bg"><div class="roi-bar" style="width:${Math.min(r.roi*20,100)}%"></div></div>
-              </div>
-              <div class="bet-row">Bet <span class="stake">$${r.away.stake}</span> on <span class="book">${r.away.book}</span> — ${r.away.team} at <span class="odds">${r.away.price > 0 ? '+' : ''}${r.away.price}</span></div>
-              <div class="bet-row">Bet <span class="stake">$${r.home.stake}</span> on <span class="book">${r.home.book}</span> — ${r.home.team} at <span class="odds">${r.home.price > 0 ? '+' : ''}${r.home.price}</span></div>
-              ${r.pinnHome ? `<div class="pinnacle-row">📌 Pinnacle: ${r.away.team} <span class="sharp">${r.pinnAway > 0 ? '+' : ''}${r.pinnAway}</span> | ${r.home.team} <span class="sharp">${r.pinnHome > 0 ? '+' : ''}${r.pinnHome}</span></div>` : ''}
-            </div>`;
-        }
+      const sportOrder = ['mlb', 'nba', 'nhl', 'nfl'];
+      for (const key of sportOrder) {
+        const s = sports[key];
+        if (!s) continue;
+        totalGames += s.games.length;
+        totalEV += s.games.filter(g => g.evHome > 2 || g.evAway > 2).length;
+        totalArb += s.games.filter(g => g.isArb).length;
+
+        html += `<div class="sport-section">
+          <div class="sport-header" id="header-${key}" onclick="toggleSection('${key}')">
+            <h2>${s.emoji} ${s.name} <span class="count">${s.games.length} games</span></h2>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="sport-body" id="body-${key}">
+            ${renderTable(s.games)}
+          </div>
+        </div>`;
       }
 
-      if (evPlays.length > 0) {
-        html += '<div class="section-title">💰 +EV vs Pinnacle Sharp Line</div>';
-        for (const r of evPlays) {
-          html += `<div class="ev-card">
-            ${getSportTag(r.sport)}
-            <div class="game-title">${r.game}</div>`;
-          if (r.isEvAway) {
-            html += `<div class="bet-row">✅ <span class="ev-positive">+${r.evAway}% EV</span> — Bet ${r.away.team} at <span class="book">${r.away.book}</span> <span class="odds">${r.away.price > 0 ? '+' : ''}${r.away.price}</span> (fair: ${r.fairAway}%)</div>`;
-          }
-          if (r.isEvHome) {
-            html += `<div class="bet-row">✅ <span class="ev-positive">+${r.evHome}% EV</span> — Bet ${r.home.team} at <span class="book">${r.home.book}</span> <span class="odds">${r.home.price > 0 ? '+' : ''}${r.home.price}</span> (fair: ${r.fairHome}%)</div>`;
-          }
-          html += `<div class="pinnacle-row">📌 Pinnacle: ${r.away.team} <span class="sharp">${r.pinnAway > 0 ? '+' : ''}${r.pinnAway}</span> | ${r.home.team} <span class="sharp">${r.pinnHome > 0 ? '+' : ''}${r.pinnHome}</span></div>
-          </div>`;
-        }
-      }
-
-      html += '<div class="section-title">📋 All Other Games</div>';
-      for (const r of rest) {
-        html += `
-          <div class="no-arb">
-            <div class="no-arb-inner">
-              <span>${getSportTag(r.sport)} <span style="color:#777">${r.game}</span></span>
-              <span class="no-arb-odds">
-                ${r.away.team} <span class="odds">${r.away.price > 0 ? '+' : ''}${r.away.price}</span> @ <span class="book">${r.away.book}</span>
-                &nbsp;|&nbsp;
-                ${r.home.team} <span class="odds">${r.home.price > 0 ? '+' : ''}${r.home.price}</span> @ <span class="book">${r.home.book}</span>
-                ${r.pinnHome ? `&nbsp;| 📌 <span class="sharp">${r.pinnAway > 0 ? '+' : ''}${r.pinnAway} / ${r.pinnHome > 0 ? '+' : ''}${r.pinnHome}</span>` : ''}
-              </span>
-            </div>
-          </div>`;
-      }
+      document.getElementById('summary').innerHTML =
+        `<span>${totalArb} arb${totalArb !== 1 ? 's' : ''}</span> &nbsp;|&nbsp; <span style="color:#ffcc00">${totalEV} +EV plays</span> &nbsp;|&nbsp; ${totalGames} total games`;
 
       document.getElementById('output').innerHTML = html;
     }
