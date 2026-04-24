@@ -9,7 +9,6 @@ const SPORTS = [
   'basketball_nba',
   'icehockey_nhl',
   'americanfootball_nfl',
-  'soccer_usa_mls'
 ];
 
 app.get('/api/odds', async (req, res) => {
