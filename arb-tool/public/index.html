@@ -30,9 +30,18 @@
     .sport-header.collapsed .arrow { transform: rotate(-90deg); }
     .sport-body { display: block; }
     .sport-body.hidden { display: none; }
+
+    /* Market toggle */
+    .market-tabs { display: flex; gap: 2px; padding: 8px 12px; background: #111; border-bottom: 1px solid #222; }
+    .market-tab { padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: #555; font-weight: bold; }
+    .market-tab:hover { color: #aaa; }
+    .market-tab.active { background: #00ff88; color: black; }
+    .market-content { display: none; }
+    .market-content.active { display: block; }
+
     .odds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .odds-table th { background: #1a1a1a; color: #555; padding: 10px 12px; text-align: center; border-bottom: 1px solid #222; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .odds-table th.game-col { text-align: left; }
+    .odds-table th.game-col { text-align: left; min-width: 180px; }
     .odds-table td { padding: 10px 12px; border-bottom: 1px solid #111; text-align: center; vertical-align: middle; }
     .odds-table td.game-col { text-align: left; }
     .odds-table tr:last-child td { border-bottom: none; }
@@ -41,7 +50,9 @@
     .team-names { display: flex; flex-direction: column; gap: 4px; }
     .team-name { font-size: 13px; color: #ccc; }
     .team-name.away { color: #888; }
-    .odds-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+    .odds-cell { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .odds-pair { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .odds-line { font-size: 11px; color: #555; }
     .odds-val { font-weight: bold; font-size: 13px; }
     .odds-val.positive { color: #00ff88; }
     .odds-val.negative { color: #ff6644; }
@@ -94,6 +105,14 @@
       document.getElementById('tab-'+name).classList.add('active');
     }
 
+    function switchMarket(sectionId, market) {
+      const section = document.getElementById(sectionId);
+      section.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
+      section.querySelectorAll('.market-content').forEach(c => c.classList.remove('active'));
+      section.querySelector(`.market-tab[data-market="${market}"]`).classList.add('active');
+      section.querySelector(`.market-content[data-market="${market}"]`).classList.add('active');
+    }
+
     function toDecimal(a){return a>0?(a/100)+1:(100/Math.abs(a))+1;}
     function fmtOdds(p){return p>0?'+'+p:''+p;}
     function oddsClass(p,pin){return pin?'odds-val pinnacle':p>0?'odds-val positive':'odds-val negative';}
@@ -112,46 +131,95 @@
       return{emoji:'🏟',name:'Other',key:'other'};
     }
 
-    function processGames(games,isLive=false){
-      const sports={};
-      for(const game of games){
-        const label=getSportLabel(game.sport_key);
-        if(!sports[label.key])sports[label.key]={...label,games:[]};
-        const bookOdds={};
-        let pinnHome=null,pinnAway=null;
-        for(const bm of game.bookmakers){
-          const outcomes=bm.markets[0].outcomes;
-          const homeO=outcomes.find(o=>o.name===game.home_team);
-          const awayO=outcomes.find(o=>o.name===game.away_team);
-          const lastUpdate=new Date(bm.markets[0].last_update);
-          const ageMinutes=(new Date()-lastUpdate)/60000;
-          if(ageMinutes>10)continue;
-          if(bm.key==='pinnacle'){pinnHome=homeO?.price??null;pinnAway=awayO?.price??null;}
-          else if(BOOKS.includes(bm.title))bookOdds[bm.title]={home:homeO?.price??null,away:awayO?.price??null};
+    function processGames(games, isLive=false) {
+      const sports = {};
+      for (const game of games) {
+        const label = getSportLabel(game.sport_key);
+        if (!sports[label.key]) sports[label.key] = {...label, games:[]};
+
+        // Separate markets
+        const h2hOdds = {}, spreadOdds = {}, totalOdds = {};
+        let pinnH2hHome=null, pinnH2hAway=null;
+        let pinnSpreadHome=null, pinnSpreadAway=null, pinnSpreadPointHome=null, pinnSpreadPointAway=null;
+        let pinnTotalOver=null, pinnTotalUnder=null, pinnTotalPoint=null;
+
+        for (const bm of game.bookmakers) {
+          const lastUpdate = new Date(bm.markets[0]?.last_update);
+          const ageMinutes = (new Date()-lastUpdate)/60000;
+          if (ageMinutes > 10) continue;
+
+          for (const market of bm.markets) {
+            const outcomes = market.outcomes;
+
+            if (market.key === 'h2h') {
+              const homeO = outcomes.find(o=>o.name===game.home_team);
+              const awayO = outcomes.find(o=>o.name===game.away_team);
+              if (bm.key==='pinnacle') { pinnH2hHome=homeO?.price??null; pinnH2hAway=awayO?.price??null; }
+              else if (BOOKS.includes(bm.title)) h2hOdds[bm.title]={home:homeO?.price??null,away:awayO?.price??null};
+            }
+
+            if (market.key === 'spreads') {
+              const homeO = outcomes.find(o=>o.name===game.home_team);
+              const awayO = outcomes.find(o=>o.name===game.away_team);
+              if (bm.key==='pinnacle') {
+                pinnSpreadHome=homeO?.price??null; pinnSpreadAway=awayO?.price??null;
+                pinnSpreadPointHome=homeO?.point??null; pinnSpreadPointAway=awayO?.point??null;
+              } else if (BOOKS.includes(bm.title)) {
+                spreadOdds[bm.title]={
+                  home:homeO?.price??null, away:awayO?.price??null,
+                  homePoint:homeO?.point??null, awayPoint:awayO?.point??null
+                };
+              }
+            }
+
+            if (market.key === 'totals') {
+              const overO = outcomes.find(o=>o.name==='Over');
+              const underO = outcomes.find(o=>o.name==='Under');
+              if (bm.key==='pinnacle') {
+                pinnTotalOver=overO?.price??null; pinnTotalUnder=underO?.price??null;
+                pinnTotalPoint=overO?.point??null;
+              } else if (BOOKS.includes(bm.title)) {
+                totalOdds[bm.title]={
+                  over:overO?.price??null, under:underO?.price??null,
+                  point:overO?.point??null
+                };
+              }
+            }
+          }
         }
-        let bestHome=-99999,bestAway=-99999;
-        for(const b of BOOKS){
-          if(bookOdds[b]?.home>bestHome)bestHome=bookOdds[b].home;
-          if(bookOdds[b]?.away>bestAway)bestAway=bookOdds[b].away;
+
+        // Best h2h
+        let bestHome=-99999, bestAway=-99999;
+        for (const b of BOOKS) {
+          if (h2hOdds[b]?.home>bestHome) bestHome=h2hOdds[b].home;
+          if (h2hOdds[b]?.away>bestAway) bestAway=h2hOdds[b].away;
         }
-        let isArb=false,arbRoi=null;
-        if(bestHome&&bestAway){
+
+        // Arb check on h2h
+        let isArb=false, arbRoi=null;
+        if (bestHome&&bestAway) {
           const total=1/toDecimal(bestHome)+1/toDecimal(bestAway);
-          if(total<1&&bestHome!==bestAway){isArb=true;arbRoi=((1/total)-1)*100;}
+          if (total<1&&bestHome!==bestAway){isArb=true;arbRoi=((1/total)-1)*100;}
         }
-        let evHome=null,evAway=null,fairHome=null,fairAway=null;
-        if(pinnHome&&pinnAway){
-          const fair=removeVig(pinnHome,pinnAway);
-          fairHome=fair.fairHome;fairAway=fair.fairAway;
-          if(bestHome)evHome=calcEV(fairHome,bestHome);
-          if(bestAway)evAway=calcEV(fairAway,bestAway);
+
+        // EV vs Pinnacle h2h
+        let evHome=null, evAway=null, fairHome=null, fairAway=null;
+        if (pinnH2hHome&&pinnH2hAway) {
+          const fair=removeVig(pinnH2hHome,pinnH2hAway);
+          fairHome=fair.fairHome; fairAway=fair.fairAway;
+          if (bestHome) evHome=calcEV(fairHome,bestHome);
+          if (bestAway) evAway=calcEV(fairAway,bestAway);
         }
+
         sports[label.key].games.push({
           game:`${game.away_team} @ ${game.home_team}`,
-          homeTeam:game.home_team,awayTeam:game.away_team,
-          time:game.commence_time,isLive,bookOdds,
-          pinnHome,pinnAway,bestHome,bestAway,
-          isArb,arbRoi,evHome,evAway,
+          homeTeam:game.home_team, awayTeam:game.away_team,
+          time:game.commence_time, isLive,
+          h2hOdds, spreadOdds, totalOdds,
+          pinnH2hHome, pinnH2hAway,
+          pinnSpreadHome, pinnSpreadAway, pinnSpreadPointHome, pinnSpreadPointAway,
+          pinnTotalOver, pinnTotalUnder, pinnTotalPoint,
+          bestHome, bestAway, isArb, arbRoi, evHome, evAway,
           fairHome:fairHome?(fairHome*100).toFixed(1):null,
           fairAway:fairAway?(fairAway*100).toFixed(1):null
         });
@@ -159,19 +227,19 @@
       return sports;
     }
 
-    function processProps(propGames){
-      const playerMap={};
-      for(const game of propGames){
-        for(const bm of game.bookmakers){
-          if(!PROP_BOOKS.includes(bm.title))continue;
-          for(const market of bm.markets){
-            const label=MARKET_LABELS[market.key];
-            if(!label)continue;
-            for(const outcome of market.outcomes){
-              const player=outcome.description||outcome.name;
-              if(!player)continue;
-              const key=`${player}|${label}|${outcome.name}`;
-              if(!playerMap[key])playerMap[key]={player,label,side:outcome.name,books:{}};
+    function processProps(propGames) {
+      const playerMap = {};
+      for (const game of propGames) {
+        for (const bm of game.bookmakers) {
+          if (!PROP_BOOKS.includes(bm.title)) continue;
+          for (const market of bm.markets) {
+            const label = MARKET_LABELS[market.key];
+            if (!label) continue;
+            for (const outcome of market.outcomes) {
+              const player = outcome.description||outcome.name;
+              if (!player) continue;
+              const key = `${player}|${label}|${outcome.name}`;
+              if (!playerMap[key]) playerMap[key]={player,label,side:outcome.name,books:{}};
               playerMap[key].books[bm.title]=outcome.price;
             }
           }
@@ -180,22 +248,33 @@
       return playerMap;
     }
 
-    function renderTable(games){
-      const cols=[...BOOKS,PINNACLE];
-      let html=`<table class="odds-table"><thead><tr>
+    function renderOddsCell(price, isPinn, isBest, point) {
+      if (!price) return '<span class="odds-val empty">—</span>';
+      const cls = oddsClass(price,isPinn)+(isBest&&!isPinn?' best-odds':'');
+      const pointLabel = point !== null && point !== undefined ? `<div class="odds-line">${point>0?'+':''}${point}</div>` : '';
+      return `<div class="odds-pair">${pointLabel}<span class="${cls}">${fmtOdds(price)}</span></div>`;
+    }
+
+    function renderH2HTable(games) {
+      const cols = [...BOOKS, PINNACLE];
+      let html = `<table class="odds-table"><thead><tr>
         <th class="game-col">Game</th>
         ${cols.map(b=>`<th>${b}</th>`).join('')}
         <th>EV / ARB</th>
       </tr></thead><tbody>`;
-      for(const g of games){
-        const cell=(book,side)=>{
-          const isPinn=book===PINNACLE;
-          const price=isPinn?(side==='home'?g.pinnHome:g.pinnAway):g.bookOdds[book]?.[side];
-          if(!price)return'<span class="odds-val empty">—</span>';
-          const isBest=!isPinn&&((side==='home'&&price===g.bestHome)||(side==='away'&&price===g.bestAway));
-          return`<span class="${oddsClass(price,isPinn)}${isBest?' best-odds':''}">${fmtOdds(price)}</span>`;
+      for (const g of games) {
+        const cell = (book) => {
+          const isPinn = book===PINNACLE;
+          const homePrice = isPinn ? g.pinnH2hHome : g.h2hOdds[book]?.home;
+          const awayPrice = isPinn ? g.pinnH2hAway : g.h2hOdds[book]?.away;
+          const homeBest = !isPinn && homePrice===g.bestHome;
+          const awayBest = !isPinn && awayPrice===g.bestAway;
+          return `<td><div class="odds-cell">
+            <div>${renderOddsCell(awayPrice,isPinn,awayBest,null)}</div>
+            <div>${renderOddsCell(homePrice,isPinn,homeBest,null)}</div>
+          </div></td>`;
         };
-        const evBadge=()=>{
+        const evBadge = () => {
           let b='';
           if(g.isLive)b+=`<span class="badge badge-live">LIVE</span> `;
           if(g.evHome>2)b+=`<span class="badge badge-ev">+${g.evHome.toFixed(1)}% ${g.homeTeam.split(' ').pop()}</span> `;
@@ -211,39 +290,105 @@
             </div>
             <div class="game-time${g.isLive?' live':''}">${fmtTime(g.time,g.isLive)}</div>
           </td>
-          ${cols.map(b=>`<td><div class="odds-cell"><div>${cell(b,'away')}</div><div>${cell(b,'home')}</div></div></td>`).join('')}
+          ${cols.map(b=>cell(b)).join('')}
           <td>${evBadge()}</td>
         </tr>`;
       }
       return html+'</tbody></table>';
     }
 
-    function renderProps(playerMap){
-      const entries=Object.entries(playerMap);
-      if(!entries.length)return'<p style="color:#555;padding:20px">No prop data right now — may need more API credits.</p>';
-      const byMarket={};
-      for(const[,p]of entries){
-        if(!byMarket[p.label])byMarket[p.label]=[];
+    function renderSpreadTable(games) {
+      const cols = [...BOOKS, PINNACLE];
+      let html = `<table class="odds-table"><thead><tr>
+        <th class="game-col">Game</th>
+        ${cols.map(b=>`<th>${b}</th>`).join('')}
+      </tr></thead><tbody>`;
+      for (const g of games) {
+        const cell = (book) => {
+          const isPinn = book===PINNACLE;
+          const homePrice = isPinn ? g.pinnSpreadHome : g.spreadOdds[book]?.home;
+          const awayPrice = isPinn ? g.pinnSpreadAway : g.spreadOdds[book]?.away;
+          const homePoint = isPinn ? g.pinnSpreadPointHome : g.spreadOdds[book]?.homePoint;
+          const awayPoint = isPinn ? g.pinnSpreadPointAway : g.spreadOdds[book]?.awayPoint;
+          if (!homePrice && !awayPrice) return `<td><span class="odds-val empty">—</span></td>`;
+          return `<td><div class="odds-cell">
+            <div>${renderOddsCell(awayPrice,isPinn,false,awayPoint)}</div>
+            <div>${renderOddsCell(homePrice,isPinn,false,homePoint)}</div>
+          </div></td>`;
+        };
+        html+=`<tr class="${g.isLive?'live-row':''}">
+          <td class="game-col">
+            <div class="team-names">
+              <div class="team-name away">${g.awayTeam}</div>
+              <div class="team-name">${g.homeTeam}</div>
+            </div>
+            <div class="game-time${g.isLive?' live':''}">${fmtTime(g.time,g.isLive)}</div>
+          </td>
+          ${cols.map(b=>cell(b)).join('')}
+        </tr>`;
+      }
+      return html+'</tbody></table>';
+    }
+
+    function renderTotalTable(games) {
+      const cols = [...BOOKS, PINNACLE];
+      let html = `<table class="odds-table"><thead><tr>
+        <th class="game-col">Game</th>
+        ${cols.map(b=>`<th>${b}</th>`).join('')}
+      </tr></thead><tbody>`;
+      for (const g of games) {
+        const cell = (book) => {
+          const isPinn = book===PINNACLE;
+          const overPrice = isPinn ? g.pinnTotalOver : g.totalOdds[book]?.over;
+          const underPrice = isPinn ? g.pinnTotalUnder : g.totalOdds[book]?.under;
+          const point = isPinn ? g.pinnTotalPoint : g.totalOdds[book]?.point;
+          if (!overPrice && !underPrice) return `<td><span class="odds-val empty">—</span></td>`;
+          return `<td><div class="odds-cell">
+            <div><div class="odds-line">O ${point??''}</div><span class="${oddsClass(overPrice,isPinn)}">${fmtOdds(overPrice)}</span></div>
+            <div><div class="odds-line">U ${point??''}</div><span class="${oddsClass(underPrice,isPinn)}">${fmtOdds(underPrice)}</span></div>
+          </div></td>`;
+        };
+        html+=`<tr class="${g.isLive?'live-row':''}">
+          <td class="game-col">
+            <div class="team-names">
+              <div class="team-name away">${g.awayTeam}</div>
+              <div class="team-name">${g.homeTeam}</div>
+            </div>
+            <div class="game-time${g.isLive?' live':''}">${fmtTime(g.time,g.isLive)}</div>
+          </td>
+          ${cols.map(b=>cell(b)).join('')}
+        </tr>`;
+      }
+      return html+'</tbody></table>';
+    }
+
+    function renderProps(playerMap) {
+      const entries = Object.entries(playerMap);
+      if (!entries.length) return '<p style="color:#555;padding:20px">No prop data right now — may need more API credits.</p>';
+      const byMarket = {};
+      for (const [,p] of entries) {
+        if (!byMarket[p.label]) byMarket[p.label]=[];
         byMarket[p.label].push(p);
       }
-      let html='';
-      for(const[market,props]of Object.entries(byMarket)){
+      let html = '';
+      for (const [market,props] of Object.entries(byMarket)) {
+        const safeMarket = market.replace(/[^a-zA-Z0-9]/g,'_');
         html+=`<div class="sport-section">
-          <div class="sport-header" id="header-prop-${market}" onclick="toggleSection('prop-${market}')">
+          <div class="sport-header" id="header-prop-${safeMarket}" onclick="toggleSection('prop-${safeMarket}')">
             <h2>📊 ${market} <span class="count">${props.length} lines</span></h2>
             <span class="arrow">▼</span>
           </div>
-          <div class="sport-body hidden" id="body-prop-${market}">
+          <div class="sport-body hidden" id="body-prop-${safeMarket}">
             <table class="odds-table"><thead><tr>
               <th class="game-col">Player</th>
               <th>Side</th>
               ${PROP_BOOKS.map(b=>`<th>${b}</th>`).join('')}
             </tr></thead><tbody>`;
-        for(const p of props){
-          const best=Math.max(...PROP_BOOKS.map(b=>p.books[b]??-99999));
+        for (const p of props) {
+          const best = Math.max(...PROP_BOOKS.map(b=>p.books[b]??-99999));
           html+=`<tr><td class="game-col" style="color:#ccc">${p.player}</td>
             <td style="color:#555;font-size:12px">${p.side}</td>`;
-          for(const b of PROP_BOOKS){
+          for (const b of PROP_BOOKS) {
             const price=p.books[b];
             if(!price){html+=`<td><span class="odds-val empty">—</span></td>`;continue;}
             html+=`<td><span class="odds-val positive${price===best?' best-odds':''}">${price>0?'+':''}${price}</span></td>`;
@@ -255,34 +400,44 @@
       return html;
     }
 
-    function renderSports(sports,containerId){
-      let html='',totalGames=0,totalEV=0,totalArb=0;
-      for(const key of['mlb','nba','nhl','nfl']){
-        const s=sports[key];
-        if(!s)continue;
+    function renderSports(sports, containerId) {
+      let html='', totalGames=0, totalEV=0, totalArb=0;
+      for (const key of ['mlb','nba','nhl','nfl']) {
+        const s = sports[key];
+        if (!s) continue;
         totalGames+=s.games.length;
         totalEV+=s.games.filter(g=>g.evHome>2||g.evAway>2).length;
         totalArb+=s.games.filter(g=>g.isArb).length;
+        const sid = `${containerId}-${key}`;
         html+=`<div class="sport-section">
-          <div class="sport-header" id="header-${containerId}-${key}" onclick="toggleSection('${containerId}-${key}')">
+          <div class="sport-header" id="header-${sid}" onclick="toggleSection('${sid}')">
             <h2>${s.emoji} ${s.name} <span class="count">${s.games.length} games</span></h2>
             <span class="arrow">▼</span>
           </div>
-          <div class="sport-body" id="body-${containerId}-${key}">${renderTable(s.games)}</div>
+          <div class="sport-body" id="body-${sid}">
+            <div class="market-tabs">
+              <div class="market-tab active" data-market="h2h" onclick="switchMarket('body-${sid}','h2h')">Moneyline</div>
+              <div class="market-tab" data-market="spread" onclick="switchMarket('body-${sid}','spread')">Spread</div>
+              <div class="market-tab" data-market="total" onclick="switchMarket('body-${sid}','total')">Total</div>
+            </div>
+            <div class="market-content active" data-market="h2h">${renderH2HTable(s.games)}</div>
+            <div class="market-content" data-market="spread">${renderSpreadTable(s.games)}</div>
+            <div class="market-content" data-market="total">${renderTotalTable(s.games)}</div>
+          </div>
         </div>`;
       }
-      if(!html)html='<p style="color:#555;padding:20px">No games right now.</p>';
+      if (!html) html='<p style="color:#555;padding:20px">No games right now.</p>';
       document.getElementById(containerId).innerHTML=html;
-      return{totalGames,totalEV,totalArb};
+      return {totalGames,totalEV,totalArb};
     }
 
-    function toggleSection(key){
+    function toggleSection(key) {
       document.getElementById('header-'+key).classList.toggle('collapsed');
       document.getElementById('body-'+key).classList.toggle('hidden');
     }
 
-    function startCountdown(){
-      clearInterval(timer);countdown=60;
+    function startCountdown() {
+      clearInterval(timer); countdown=60;
       timer=setInterval(()=>{
         countdown--;
         document.getElementById('countdown').textContent=`Auto-refresh in ${countdown}s`;
@@ -290,16 +445,16 @@
       },1000);
     }
 
-    async function loadOdds(){
+    async function loadOdds() {
       document.getElementById('summary').innerHTML='<span style="color:#555">Scanning...</span>';
       startCountdown();
-      const res=await fetch('/api/odds');
-      const{games,liveGames,mlbProps,nbaProps}=await res.json();
-      const pregameSports=processGames(games,false);
-      const liveSports=processGames(liveGames||[],true);
-      const playerMap=processProps([...(mlbProps||[]),...(nbaProps||[])]);
-      const pg=renderSports(pregameSports,'tab-pregame');
-      const lv=renderSports(liveSports,'tab-live');
+      const res = await fetch('/api/odds');
+      const {games,liveGames,mlbProps,nbaProps} = await res.json();
+      const pregameSports = processGames(games,false);
+      const liveSports = processGames(liveGames||[],true);
+      const playerMap = processProps([...(mlbProps||[]),...(nbaProps||[])]);
+      const pg = renderSports(pregameSports,'tab-pregame');
+      const lv = renderSports(liveSports,'tab-live');
       document.getElementById('tab-props').innerHTML=renderProps(playerMap);
       document.getElementById('live-count').textContent=lv.totalGames;
       document.getElementById('summary').innerHTML=

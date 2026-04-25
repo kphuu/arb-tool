@@ -37,18 +37,15 @@ async function fetchNBAProps() {
 app.get('/api/odds', async (req, res) => {
   try {
     const now = new Date();
-
     const gamePromises = SPORTS.map(sport => fetchOdds(sport).catch(() => []));
     const gameResults = await Promise.all(gamePromises);
     const allGames = gameResults.flat().filter(g => g && g.id);
     const pregame = allGames.filter(g => new Date(g.commence_time) > now);
     const live = allGames.filter(g => new Date(g.commence_time) <= now);
-
     const [mlbProps, nbaProps] = await Promise.all([
       fetchMLBProps().catch(() => []),
       fetchNBAProps().catch(() => [])
     ]);
-
     res.json({
       games: pregame,
       liveGames: live,
