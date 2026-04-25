@@ -20,14 +20,20 @@ app.get('/api/odds', async (req, res) => {
     );
 
     const results = await Promise.all(promises);
-const now = new Date();
-const allGames = results.flat().filter(g => g && g.id && new Date(g.commence_time) > now);
+    const now = new Date();
+    const allGames = results.flat().filter(g => g && g.id);
+    const pregame = allGames.filter(g => new Date(g.commence_time) > now);
+    const live = allGames.filter(g => new Date(g.commence_time) <= now);
 
     const hrProps = await fetch(
       `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us&markets=batter_home_runs&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers`
     ).then(r => r.json()).catch(() => []);
 
-    res.json({ games: allGames, hrProps: Array.isArray(hrProps) ? hrProps : [] });
+    res.json({
+      games: pregame,
+      liveGames: live,
+      hrProps: Array.isArray(hrProps) ? hrProps : []
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
