@@ -11,28 +11,49 @@ const SPORTS = [
   'americanfootball_nfl'
 ];
 
+async function fetchOdds(sport) {
+  const res = await fetch(
+    `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us,eu&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers,pinnacle`
+  );
+  return res.json();
+}
+
+async function fetchMLBProps() {
+  const markets = 'batter_home_runs,batter_hits,batter_rbis,pitcher_strikeouts,pitcher_hits_allowed';
+  const res = await fetch(
+    `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers`
+  );
+  return res.json();
+}
+
+async function fetchNBAProps() {
+  const markets = 'player_points,player_rebounds,player_assists,player_threes';
+  const res = await fetch(
+    `https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers`
+  );
+  return res.json();
+}
+
 app.get('/api/odds', async (req, res) => {
   try {
-    const promises = SPORTS.map(sport =>
-      fetch(`https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us,eu&markets=h2h&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers,pinnacle`)
-        .then(r => r.json())
-        .catch(() => [])
-    );
-
-    const results = await Promise.all(promises);
     const now = new Date();
-    const allGames = results.flat().filter(g => g && g.id);
+
+    const gamePromises = SPORTS.map(sport => fetchOdds(sport).catch(() => []));
+    const gameResults = await Promise.all(gamePromises);
+    const allGames = gameResults.flat().filter(g => g && g.id);
     const pregame = allGames.filter(g => new Date(g.commence_time) > now);
     const live = allGames.filter(g => new Date(g.commence_time) <= now);
 
-    const hrProps = await fetch(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us&markets=batter_home_runs&oddsFormat=american&bookmakers=fanduel,draftkings,betmgm,betrivers`
-    ).then(r => r.json()).catch(() => []);
+    const [mlbProps, nbaProps] = await Promise.all([
+      fetchMLBProps().catch(() => []),
+      fetchNBAProps().catch(() => [])
+    ]);
 
     res.json({
       games: pregame,
       liveGames: live,
-      hrProps: Array.isArray(hrProps) ? hrProps : []
+      mlbProps: Array.isArray(mlbProps) ? mlbProps : [],
+      nbaProps: Array.isArray(nbaProps) ? nbaProps : []
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
