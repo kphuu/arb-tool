@@ -125,9 +125,12 @@
           const outcomes = bm.markets[0].outcomes;
           const homeO = outcomes.find(o => o.name===game.home_team);
           const awayO = outcomes.find(o => o.name===game.away_team);
-          if (bm.key==='pinnacle') { pinnHome=homeO?.price??null; pinnAway=awayO?.price??null; }
-          else if (BOOKS.includes(bm.title)) bookOdds[bm.title]={home:homeO?.price??null,away:awayO?.price??null};
-        }
+const lastUpdate = new Date(bm.markets[0].last_update);
+const ageMinutes = (new Date() - lastUpdate) / 60000;
+if (ageMinutes > 10) continue;
+
+if (bm.key==='pinnacle') { pinnHome=homeO?.price??null; pinnAway=awayO?.price??null; }
+else if (BOOKS.includes(bm.title)) bookOdds[bm.title]={home:homeO?.price??null,away:awayO?.price??null};        }
         let bestHome=-99999, bestAway=-99999;
         for (const b of BOOKS) {
           if (bookOdds[b]?.home>bestHome) bestHome=bookOdds[b].home;
